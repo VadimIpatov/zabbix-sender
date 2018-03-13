@@ -27,8 +27,8 @@ var infoRE = regexp.MustCompile(`(?i)Processed:? (\d+);? Failed:? (\d+)`)
 // Returns encountered fatal error like I/O and marshalling/unmarshalling.
 // Caller should inspect response (and in some situations also Zabbix server log)
 // to check if all items are accepted.
-func Send(addr *net.TCPAddr, di DataItems) (res *Response, err error) {
-	b, err := di.Marshal()
+func Send(addr *net.TCPAddr, di DataItems, sendClock bool) (res *Response, err error) {
+	b, err := di.Marshal(sendClock)
 	if err != nil {
 		return
 	}
