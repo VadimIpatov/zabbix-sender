@@ -56,7 +56,7 @@ func MakeDataItems(kv map[string]interface{}, hostname string, timestamp time.Ti
 // It's like dense JSON with binary header, somewhat documented there:
 // https://www.zabbix.com/documentation/3.2/manual/appendix/items/activepassive
 // and here: https://www.zabbix.org/wiki/Docs/protocols/zabbix_agent/3.0
-func (di DataItems) Marshal(sendClock bool) (b []byte, err error) {
+func (di DataItems) Marshal(passClock bool) (b []byte, err error) {
 	var (
 		datalen uint64
 		now, nowNs string
@@ -64,7 +64,7 @@ func (di DataItems) Marshal(sendClock bool) (b []byte, err error) {
 	d, err := json.Marshal(di)
 	if err == nil {
 		// the order of fields in this "JSON" is important - request should be before data
-		if sendClock {
+		if passClock {
 			now = fmt.Sprint(time.Now().Unix())
 			nowNs = fmt.Sprint(time.Now().Nanosecond())
 			datalen = uint64(len(d) + len(now) + len(nowNs) + 48) // 32 + d + 9 + now + 6 + nowNs + 1
@@ -78,7 +78,7 @@ func (di DataItems) Marshal(sendClock bool) (b []byte, err error) {
 		err = binary.Write(buf, binary.LittleEndian, datalen) // 8
 		buf.WriteString(`{"request":"sender data","data":`)   // 32
 		buf.Write(d)                                          // d
-		if sendClock {
+		if passClock {
 			buf.WriteString(`,"clock":`)                      // 9
 			buf.WriteString(now)                              // now
 			buf.WriteString(`,"ns":`)                         // 6

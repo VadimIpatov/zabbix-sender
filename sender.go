@@ -19,16 +19,17 @@ type Response struct {
 	Info      string `json:"info"`     // String like "Processed 2 Failed 1 Total 3 Seconds spent 0.000034"
 	Processed int    // Filled by parsing Info
 	Failed    int    // Filled by parsing Info
+	TimeSpent float64 // Filled by parsing Info
 }
 
-var infoRE = regexp.MustCompile(`(?i)Processed:? (\d+);? Failed:? (\d+)`)
+var infoRE = regexp.MustCompile(`(?i)Processed:? (\d+);? Failed:? (\d+).+; seconds spent:? (\d+\.\d+)`)
 
 // Send DataItems to Zabbix server and wait for response.
 // Returns encountered fatal error like I/O and marshalling/unmarshalling.
 // Caller should inspect response (and in some situations also Zabbix server log)
 // to check if all items are accepted.
-func Send(addr *net.TCPAddr, di DataItems, sendClock bool) (res *Response, err error) {
-	b, err := di.Marshal(sendClock)
+func Send(addr *net.TCPAddr, di DataItems, passClock bool) (res *Response, err error) {
+	b, err := di.Marshal(passClock)
 	if err != nil {
 		return
 	}
@@ -76,12 +77,15 @@ func Send(addr *net.TCPAddr, di DataItems, sendClock bool) (res *Response, err e
 	err = json.Unmarshal(buf, res)
 	if err == nil {
 		m := infoRE.FindStringSubmatch(res.Info)
-		if len(m) == 3 {
+		if len(m) == 4 {
 			p, _ := strconv.Atoi(m[1])
 			f, _ := strconv.Atoi(m[2])
+			s, _ := strconv.ParseFloat(m[3],64)
 			res.Processed = p
 			res.Failed = f
+			res.TimeSpent = s
 		}
 	}
+	
 	return
 }
